@@ -1,9 +1,4 @@
-# hello
-
-nihao. 
-[HELLOWORLD-2] 111111
-
-## 五子棋游戏 (Gomoku Game)
+# 五子棋游戏 (Gomoku Game)
 
 A fully functional web-based Gomoku (Five in a Row) game implemented with HTML, CSS, and JavaScript.
 
