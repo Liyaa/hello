@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏 - Gomoku Game</title>
+    <link rel="stylesheet" href="gomoku.css">
+</head>
+<body>
+    <div class="container">
+        <h1>五子棋游戏</h1>
+        <div class="game-info">
+            <div class="status" id="status">黑棋先手</div>
+            <button class="reset-btn" id="resetBtn">重新开始</button>
+        </div>
+        <canvas id="gameBoard" width="600" height="600"></canvas>
+        <div class="instructions">
+            <h3>游戏规则：</h3>
+            <ul>
+                <li>黑棋先手，白棋后手</li>
+                <li>轮流在棋盘上落子</li>
+                <li>先连成五子的一方获胜</li>
+                <li>横、竖、斜任意方向均可</li>
+            </ul>
+        </div>
+    </div>
+    <script src="gomoku.js"></script>
+</body>
+</html>
