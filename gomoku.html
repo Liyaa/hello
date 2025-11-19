@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏 - Gomoku Game</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin: 0 0 20px 0;
+            color: #667eea;
+            font-size: 32px;
+        }
+
+        .game-info {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .current-player {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 5px;
+            background: #f0f0f0;
+        }
+
+        .board {
+            display: inline-block;
+            background: #daa520;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 0;
+            background: #cd853f;
+            padding: 0;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #8b6914;
+            background: #daa520;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .cell:hover:not(.occupied) {
+            background: #f0d080;
+        }
+
+        .cell.occupied {
+            cursor: not-allowed;
+        }
+
+        .stone {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .stone.black {
+            background: radial-gradient(circle at 30% 30%, #4a4a4a, #000);
+        }
+
+        .stone.white {
+            background: radial-gradient(circle at 30% 30%, #ffffff, #d0d0d0);
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background 0.3s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .winner-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px 60px;
+            border-radius: 15px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            display: none;
+            z-index: 1000;
+        }
+
+        .winner-message.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translate(-50%, -60%);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
+        }
+
+        .winner-message h2 {
+            margin: 0 0 20px 0;
+            color: #667eea;
+            font-size: 28px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 999;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>五子棋游戏</h1>
+        <div class="game-info">
+            <span>当前玩家: </span>
+            <span class="current-player" id="currentPlayer">黑方</span>
+        </div>
+        <div class="board">
+            <div class="board-grid" id="board"></div>
+        </div>
+        <div class="controls">
+            <button onclick="resetGame()">重新开始</button>
+            <button onclick="undoMove()">悔棋</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="winner-message" id="winnerMessage">
+        <h2 id="winnerText"></h2>
+        <button onclick="resetGame()">再来一局</button>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 15;
+        let board = [];
+        let currentPlayer = 'black';
+        let gameOver = false;
+        let moveHistory = [];
+
+        // Initialize the game
+        function initGame() {
+            board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+            currentPlayer = 'black';
+            gameOver = false;
+            moveHistory = [];
+            renderBoard();
+            updateCurrentPlayer();
+        }
+
+        // Render the board
+        function renderBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    if (board[row][col]) {
+                        cell.classList.add('occupied');
+                        const stone = document.createElement('div');
+                        stone.className = `stone ${board[row][col]}`;
+                        cell.appendChild(stone);
+                    } else {
+                        cell.onclick = () => handleCellClick(row, col);
+                    }
+                    
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        // Handle cell click
+        function handleCellClick(row, col) {
+            if (gameOver || board[row][col]) {
+                return;
+            }
+
+            // Place the stone
+            board[row][col] = currentPlayer;
+            moveHistory.push({ row, col, player: currentPlayer });
+
+            // Check for winner
+            if (checkWinner(row, col)) {
+                showWinner();
+                return;
+            }
+
+            // Switch player
+            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            updateCurrentPlayer();
+            renderBoard();
+        }
+
+        // Check if current move wins
+        function checkWinner(row, col) {
+            const directions = [
+                [0, 1],   // horizontal
+                [1, 0],   // vertical
+                [1, 1],   // diagonal \
+                [1, -1]   // diagonal /
+            ];
+
+            for (const [dx, dy] of directions) {
+                let count = 1;
+                
+                // Check positive direction
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row + dx * i;
+                    const newCol = col + dy * i;
+                    if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) {
+                        break;
+                    }
+                    if (board[newRow][newCol] === currentPlayer) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Check negative direction
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row - dx * i;
+                    const newCol = col - dy * i;
+                    if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) {
+                        break;
+                    }
+                    if (board[newRow][newCol] === currentPlayer) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (count >= 5) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Update current player display
+        function updateCurrentPlayer() {
+            const playerDisplay = document.getElementById('currentPlayer');
+            playerDisplay.textContent = currentPlayer === 'black' ? '黑方' : '白方';
+            playerDisplay.style.background = currentPlayer === 'black' ? '#333' : '#f0f0f0';
+            playerDisplay.style.color = currentPlayer === 'black' ? 'white' : '#333';
+        }
+
+        // Show winner message
+        function showWinner() {
+            gameOver = true;
+            const winnerText = document.getElementById('winnerText');
+            winnerText.textContent = `${currentPlayer === 'black' ? '黑方' : '白方'}获胜！`;
+            document.getElementById('overlay').classList.add('show');
+            document.getElementById('winnerMessage').classList.add('show');
+        }
+
+        // Reset game
+        function resetGame() {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('winnerMessage').classList.remove('show');
+            initGame();
+        }
+
+        // Undo last move
+        function undoMove() {
+            if (moveHistory.length === 0 || gameOver) {
+                return;
+            }
+
+            const lastMove = moveHistory.pop();
+            board[lastMove.row][lastMove.col] = null;
+            currentPlayer = lastMove.player;
+            updateCurrentPlayer();
+            renderBoard();
+        }
+
+        // Initialize the game when page loads
+        initGame();
+    </script>
+</body>
+</html>
